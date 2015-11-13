@@ -1,0 +1,83 @@
+#!/usr/bin/python
+# -*- encoding: utf-8 -*-
+
+'''
+Este programa é um software livre; você pode redistribuí-lo e/ou
+modificá-lo dentro dos termos da Licença Pública Geral GNU como
+publicada pela Fundação do Software Livre (FSF); na versão 3 da
+Licença, ou qualquer versão.
+
+Este programa é distribuído na esperança de que possa ser útil,
+mas SEM NENHUMA GARANTIA; sem uma garantia implícita de ADEQUAÇÃO
+a qualquer MERCADO ou APLICAÇÃO EM PARTICULAR. Veja a
+Licença Pública Geral GNU para maiores detalhes.
+
+André Dalcin
+andre@planosassessoria.com.br
+Para a correta execução deste script, se faz necessario a instalação do wget
+sudo pip install wget
+A ideia deste programa foi baseada no post
+http://askubuntu.com/questions/589469/how-to-automatically-update-atom-editor
+'''
+
+import subprocess as sp
+import re
+import urllib
+import wget
+import platform
+from zipfile import ZipFile
+import os
+
+system_version = platform.system()
+
+# Aqui voce escolhe o tipo de pacote para seu sistema, no caso do meu uso rpm
+if 'Darwin' in system_version:
+    arquivo = 'atom-mac.zip'
+elif 'Linux' in system_version:
+    arquivo = 'atom.x86_64.rpm'
+else:
+    print('Not implementd yet!')
+
+# Aqui buscar no Atom instalado a versão atual do mesmo!
+local_version = sp.Popen(
+    ["atom", "-v"], stdout=sp.PIPE).communicate()[0].decode('utf-8').rstrip().lstrip()
+
+try:
+    data = urllib.urlopen(
+        'https://github.com/atom/atom/releases/latest').read()
+except:
+    try:
+        import urllib.request
+        data = urllib.request.urlopen(
+            'https://github.com/atom/atom/releases/latest').read()
+    except:
+        print('Não foi possivel encontrar o modulo urllib.request\n')
+
+ret = re.findall(re.compile(
+    'href="([^"#]+){}"'.format(arquivo), re.I | re.M), str(data))
+
+part = ret[0].split('/')
+
+last_version = re.sub('^v', '', part[len(part) - 2]).rstrip().lstrip()
+
+if local_version == last_version:
+    print('Você esta utilizando a versão mais recente do Atom {} ;)'.format(
+        local_version))
+else:
+    print('Existe uma versão mais recente do Atom {} iremos fazer o download da mesma! aguarde...\n'.format(last_version))
+
+    if os.path.exists('/tmp/{}'.format(arquivo)):
+        os.remove('/tmp/{}'.format(arquivo))
+
+    wget.download('https://github.com{0}{1}'.format(ret[0], arquivo), '/tmp')
+    print('\n')
+
+    if 'Linux' in system_version:
+        print('Digite agora a senha do usuario root do sistema para efetuar a atualização do Atom {}\n'.format(
+            last_version))
+        sp.call(['su', '-c', 'rpm -Uvh /tmp/{}'.format(arquivo)])
+    elif 'Darwin' in system_version:
+        with ZipFile('/tmp/{}'.format(arquivo), 'r') as atom_zip:
+            atom_zip.extract('Atom', '/Applications/')
+
+    print('\n')
