@@ -40,7 +40,9 @@ else:
 
 # Aqui buscar no Atom instalado a versão atual do mesmo!
 local_version = sp.Popen(
-    ["atom", "-v"], stdout=sp.PIPE).communicate()[0].decode('utf-8').rstrip().lstrip()
+    ["atom", "-v"], stdout=sp.PIPE).communicate()[0].decode('utf-8').rstrip().lstrip().split('\n')[0]
+
+local_version = re.sub('[^\d.]', '', local_version)
 
 try:
     data = urllib.urlopen(
@@ -58,7 +60,7 @@ ret = re.findall(re.compile(
 
 part = ret[0].split('/')
 
-last_version = re.sub('^v', '', part[len(part) - 2]).rstrip().lstrip()
+last_version = re.sub('[^\d.]', '', part[len(part) - 2]).rstrip().lstrip()
 
 if local_version == last_version:
     print('Você esta utilizando a versão mais recente do Atom {} ;)'.format(
